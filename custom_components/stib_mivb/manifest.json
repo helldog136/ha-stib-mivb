@@ -1,0 +1,8 @@
+{
+  "domain": "stib_mivb",
+  "name": "STIB/MIVB sensor",
+  "documentation": "https://github.com/helldog136/ha-stib-mivb",
+  "codeowners": ["@helldog136"],
+  "requirements": ["pystibmivb==1.6.0"],
+  "config_flow": true
+}
