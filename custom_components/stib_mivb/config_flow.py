@@ -1,11 +1,13 @@
 import logging
 
 from homeassistant import config_entries, exceptions
+from homeassistant.core import callback
 
 from . import InvalidAuth
 from .const import *
 
 _LOGGER = logging.getLogger(__name__)
+
 
 @config_entries.HANDLERS.register(DOMAIN)
 class StibMivbConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -15,7 +17,7 @@ class StibMivbConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self):
         """Initialize the STIB config flow."""
-        self.device_config = {}
+        self.api_config = {}
 
     async def async_step_user(self, user_input=None):
         """
@@ -24,52 +26,58 @@ class StibMivbConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            _LOGGER.error("STIBu: "+str(user_input)+"--"+str(self.device_config)+" - "+str(STIB_ENTRY_SCHEMA) + " -- "+str(errors))
+            _LOGGER.error("STIBu: " + str(user_input) +"--" + str(self.api_config) + " - " + str(STIB_API_ENTRY) + " -- " + str(errors))
             try:
-                this_uid = ""
-                stop_name = user_input.get(CONF_STOP_NAME)
-                this_uid += stop_name
-                lines_filter_dict = user_input.get(CONF_LINE_FILTER)
-                lines_filter = []
-                for entry in lines_filter_dict:
-                    filtr = (entry.get(CONF_LINE_NR), entry.get(CONF_DESTINATION))
-                    lines_filter.append(filtr)
-                lines_filter.sort(key=lambda e: str(e[0]) + str(e[1]))
-                for filtr in lines_filter:
-                    this_uid += "_" + str(filtr[0]) + "_" + str(filtr[1])
-
-                max_passages = user_input.get(CONF_MAX_PASSAGES)
-
-                await self.async_set_unique_id(this_uid)
-
+                uid = f"{user_input[CONF_STOP_NAME]}[{user_input[CONF_MAIN_DIRECTION]}]"
+                await self.async_set_unique_id(uid)
                 self._abort_if_unique_id_configured()
 
-                self.device_config = {
-                    CONF_CLIENT_ID_KEY: user_input[CONF_CLIENT_ID_KEY],
-                    CONF_CLIENT_SECRET_KEY: user_input[CONF_CLIENT_SECRET_KEY],
-                    CONF_LANG: user_input[CONF_LANG]
-                }
-
-                return self.async_create_entry(title=this_uid, data={
-                                                        CONF_CLIENT_ID_KEY: user_input[CONF_CLIENT_ID_KEY],
-                                                        CONF_CLIENT_SECRET_KEY: user_input[CONF_CLIENT_SECRET_KEY],
-                                                        CONF_LANG: user_input[CONF_LANG],
-                                                        "uid": this_uid,
-                                                        "stop_name": stop_name,
-                                                        "lines_filter": lines_filter,
-                                                        "max_passages": max_passages
-                                                    })
+                return self.async_create_entry(title=uid, data=user_input)
 
             except InvalidAuth:
                 errors["base"] = "faulty_credentials"
 
             except CannotConnect:
                 errors["base"] = "device_unavailable"
-        _LOGGER.error("STIB: "+str(self.device_config)+" - "+str(STIB_ENTRY_SCHEMA) + " -- "+str(errors))
         return self.async_show_form(
             step_id="user",
-            description_placeholders=self.device_config,
-            data_schema=STIB_ENTRY_SCHEMA,
+            data_schema=vol.Schema(STIB_API_ENTRY),
+            errors=errors,
+        )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return OptionsFlowHandler(config_entry)
+
+
+class OptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle a option flow for tado."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry):
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(self, user_input=None):
+        """Handle options flow."""
+        _LOGGER.error("STBI"+str(user_input))
+        return await self.async_step_line_filter()
+
+    async def async_step_line_filter(self, user_input=None):
+        """Choose line filter."""
+        _LOGGER.error("STBLF"+str(user_input))
+        errors = {}
+
+        if user_input is not None:
+            lines_filter = [int(n) for n in user_input.get(CONF_MONITORED_LINES).split(",")]
+            lines_filter.sort()
+            self.config_entry.options[CONF_MONITORED_LINES] = lines_filter
+            self.config_entry.options[CONF_MAX_PASSAGES] = user_input.get(CONF_MAX_PASSAGES)
+
+        return self.async_show_form(
+            step_id="line_filter",
+            data_schema=vol.Schema(LINE_FILTERS_ENTRY),
             errors=errors,
         )
 

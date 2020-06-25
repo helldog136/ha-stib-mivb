@@ -20,25 +20,26 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class STIBMVIBPublicTransportSensor(Entity):
-    def __init__(self, service, parameters):
+    def __init__(self, service, stop_name, main_direction, monitored_lines, max_passages, lang):
         """Initialize the sensor."""
         self._is_init = False
         self._available = False
         self._assumed_state = False
         self.stib_service = service
-        stop_name, lines_filter, max_passages, lang = parameters
-        self._sensor_name = stop_name
         self.stop_name = stop_name
-        self.lines_filter = lines_filter
+        self.main_direction = main_direction
+        self._sensor_name = f"{stop_name}[{main_direction}]"
+        self._name = f"{stop_name}[{main_direction}]"
         self.max_passages = max_passages
         self.lang = lang
+        self.lines_filter = []
         self.passages = {}
-        self._name = stop_name
-        self._attributes = {"stop_name": self._name,
+        self._attributes = {"stop_name": self.stop_name,
                             ATTR_ATTRIBUTION: ATTRIBUTION}
         self._last_update = 0
         self._last_intermediate_update = 0
         self._state = None
+        self.set_monitored_lines(monitored_lines)
 
     async def async_update(self):
         """Get the latest data from the STIB/MVIB API."""
@@ -151,3 +152,17 @@ class STIBMVIBPublicTransportSensor(Entity):
     @property
     def unique_id(self):
         return self.stop_name + "_" + str(hash(str(self.lines_filter)))
+
+    def set_monitored_lines(self, monitored_lines):
+        self.lines_filter = []
+        for ln_nr in monitored_lines:
+            self.lines_filter.append((ln_nr, self.main_direction))
+        self.set_sensor_name()
+
+    def set_sensor_name(self):
+        res = self.stop_name + f"[{self.main_direction}]"
+        if len(self.lines_filter) > 0:
+            for ln_nr, dir in self.lines_filter:
+                res += ("_" + str(ln_nr))
+        self._sensor_name = res
+        self._name = res

@@ -52,9 +52,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     service = hass.data.get(DOMAIN).get("service")
 
-    sensor = STIBMVIBPublicTransportSensor(service=service, parameters=(
-    entry.data.get("stop_name"), entry.data.get("lines_filter"), entry.data.get("max_passages"),
-    entry.data.get(CONF_LANG), entry.data.get(CONF_LANG)))
+    sensor = STIBMVIBPublicTransportSensor(service=service,
+                                           stop_name=entry.data.get(CONF_STOP_NAME),
+                                           main_direction=entry.data.get(CONF_MAIN_DIRECTION),
+                                           monitored_lines=entry.options.get(CONF_MONITORED_LINES),
+                                           max_passages=entry.options.get(CONF_MAX_PASSAGES),
+                                           lang=entry.data.get(CONF_LANG))
 
     if not sensor.is_init:
         raise PlatformNotReady
