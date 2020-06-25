@@ -1,6 +1,11 @@
+import logging
+
 from homeassistant import config_entries, exceptions
+
+from . import InvalidAuth
 from .const import *
 
+_LOGGER = logging.getLogger(__name__)
 
 @config_entries.HANDLERS.register(DOMAIN)
 class StibMivbConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -19,6 +24,7 @@ class StibMivbConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
+            _LOGGER.error("STIBu: "+str(user_input)+"--"+str(self.device_config)+" - "+str(STIB_ENTRY_SCHEMA) + " -- "+str(errors))
             try:
                 this_uid = ""
                 stop_name = user_input.get(CONF_STOP_NAME)
@@ -59,7 +65,7 @@ class StibMivbConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             except CannotConnect:
                 errors["base"] = "device_unavailable"
-
+        _LOGGER.error("STIB: "+str(self.device_config)+" - "+str(STIB_ENTRY_SCHEMA) + " -- "+str(errors))
         return self.async_show_form(
             step_id="user",
             description_placeholders=self.device_config,

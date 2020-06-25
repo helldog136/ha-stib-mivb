@@ -40,20 +40,20 @@ CONF_MAX_PASSAGES = 'max_passages'
 CONF_MAX_DELTA_ACTU = 'actualization_delta'
 
 # platform schema
-STIB_ENTRY_SCHEMA = {
-    vol.Required(CONF_CLIENT_ID_KEY, description={"suggested_value": "fr"}): cv.string,
-    vol.Required(CONF_CLIENT_SECRET_KEY): cv.string,
-    vol.Optional(CONF_LANG, default='fr', description={"suggested_value": "fr"}): cv.string,
+STIB_ENTRY_SCHEMA = vol.Schema({
+    vol.Required(CONF_CLIENT_ID_KEY): str,
+    vol.Required(CONF_CLIENT_SECRET_KEY): str,
+    vol.Optional(CONF_LANG, default='fr', description={"suggested_value": "fr"}): str,
 
-    vol.Required(CONF_STOP_NAME): cv.string,
+    vol.Required(CONF_STOP_NAME): str,
     vol.Optional(CONF_LINE_FILTER, default=[]): [
         {
-            vol.Required(CONF_LINE_NR): cv.positive_int,
-            vol.Required(CONF_DESTINATION): cv.Any
+            vol.Required(CONF_LINE_NR): int,
+            vol.Required(CONF_DESTINATION): vol.In([str, 1, 2])
         }
     ],
-    vol.Optional(CONF_MAX_PASSAGES, default=None): cv.positive_int
-}
+    vol.Optional(CONF_MAX_PASSAGES, default=None): int
+})
 
 
 # Defaults
